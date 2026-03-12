@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Permainan ABC Garis Tiga</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            text-align: center;
+            background-color: #f0f8ff;
+            margin: 0;
+            padding: 10px; 
+            user-select: none;
+            overflow-x: hidden; 
+        }
+
+        h1 { color: #333; margin-bottom: 5px; font-size: 32px; }
+        p { color: #666; font-size: 20px; margin-top: 5px; }
+
+        #progress-text {
+            font-size: 24px;
+            font-weight: bold;
+            color: #0066cc;
+            margin: 10px 0 20px 0;
+            background: #e6f2ff;
+            display: inline-block;
+            padding: 10px 30px;
+            border-radius: 25px;
+            border: 3px solid #b3d9ff;
+        }
+
+        #game-board {
+            width: 95%; 
+            max-width: 700px; 
+            margin: 0 auto;
+            background: white;
+            padding: 40px 20px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+
+        /* Garisan 1:1:1 Gergasi (Jarak 80px setiap satu) */
+        .garis-container {
+            position: relative;
+            width: 100%;
+            height: 244px;
+            margin: 60px 0;
+            background: #fff;
+            border-left: 3px solid #ddd;
+            border-right: 3px solid #ddd;
+        }
+
+        .line {
+            position: absolute;
+            width: 100%;
+            height: 4px; 
+            left: 0;
+            border-radius: 2px;
+        }
+
+        /* Koordinat Garisan */
+        .line-1 { top: 0px; background-color: #ff4d4d; }   
+        .line-2 { top: 80px; background-color: #4da6ff; }  
+        .line-3 { top: 160px; background-color: #4da6ff; } 
+        .line-4 { top: 240px; background-color: #ff4d4d; } 
+
+        /* Tempat simpan huruf (Kotak Kuning) */
+        #letters-pool {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0px; 
+            margin-top: 80px;
+            height: 250px; 
+            background: #fff8e6;
+            border-radius: 15px;
+            border: 4px dashed #ffcc00;
+            overflow: visible; 
+        }
+
+        /* PENYELESAIAN JARAK: Menarik imej mendekati satu sama lain secara visual di dalam kotak */
+        #letters-pool .letter {
+            margin: 0 -130px; /* <--- NILAI NEGATIF DIBESARKAN SUPAYA LEBIH RAPAT */
+        }
+
+        /* Gaya Khusus Gambar Huruf */
+        .letter {
+            cursor: grab;
+            position: relative;
+            touch-action: none; 
+            z-index: 10;
+            object-fit: contain; 
+            -webkit-user-drag: none; 
+            flex-shrink: 0; 
+        }
+
+        .letter:active { cursor: grabbing; }
+
+        /* Mesej maklum balas */
+        #feedback {
+            margin-top: 30px;
+            font-size: 30px; 
+            font-weight: bold;
+            min-height: 40px;
+        }
+        .correct { color: #4CAF50; }
+        .wrong { color: #F44336; }
+
+        #reset-btn {
+            margin-top: 30px;
+            padding: 15px 35px;
+            font-size: 22px;
+            background: #ff9900;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.2s;
+            display: none; 
+        }
+        #reset-btn:hover { background: #e68a00; }
+    </style>
+</head>
+<body>
+
+    <h1>Permainan ABC Garis Tiga</h1>
+    <p>Susun huruf besar dan huruf kecil pada garisan yang betul!</p>
+    
+    <div id="progress-text">Memuatkan...</div>
+
+    <div id="game-board">
+        <div class="garis-container" id="garis-container">
+            <div class="line line-1"></div>
+            <div class="line line-2"></div>
+            <div class="line line-3"></div>
+            <div class="line line-4"></div>
+        </div>
+
+        <div id="feedback"></div>
+        <div id="letters-pool"></div>
+        <button id="reset-btn" onclick="restartGame()">Main Semula Dari Aa</button>
+    </div>
+
+    <script>
+        const alphabetPairs = [
+            { 
+                upper: { char: 'A', url: 'https://res.cloudinary.com/dz2vizcjb/image/upload/v1773156972/AA_qn1s1x.png', height: 380, offset: -70 }, 
+                lower: { char: 'a', url: 'https://res.cloudinary.com/dz2vizcjb/image/upload/v1773156923/a_do4rk8.png', height: 280, offset: -20 } 
+            },
+            { 
+                upper: { char: 'B', url: 'https://res.cloudinary.com/dz2vizcjb/image/upload/v1773156973/BB_ihcetp.png', height: 380, offset: -70 }, 
+                lower: { char: 'b', url: 'https://res.cloudinary.com/dz2vizcjb/image/upload/v1773156972/b_r71ho8.png', height: 380, offset: -70 } 
+            },
+            { 
+                upper: { char: 'C', url: 'https://res.cloudinary.com/dz2vizcjb/image/upload/v1773156974/CC_xufrxo.png', height: 380, offset: -70 }, 
+                lower: { char: 'c', url: 'https://res.cloudinary.com/dz2vizcjb/image/upload/v1773156973/c_csdqzu.png', height: 280, offset: -20 } 
+            },
+            { 
+                upper: { char: 'D', url: 'https://res.cloudinary.com/dz2vizcjb/image/upload/v1773156975/DD_lrfmbp.png', height: 380, offset: -70 }, 
+                lower: { char: 'd', url: 'https://res.cloudinary.com/dz2vizcjb/image/upload/v1773156975/d_aqzwbj.png', height: 380, offset: -70 } 
+            },
+            { 
+                upper: { char: 'E', url: 'https://res.cloudinary.com/dz2vizcjb/image/upload/v1773156977/EE_m4mdqa.png', height: 380, offset: -70 }, 
+                lower: { char: 'e', url: 'https://res.cloudinary.com/dz2vizcjb/image/upload/v1773156976/e_gozbx9.png', height: 280, offset: -20 } 
+            },
+            { 
+                upper: { char: 'F', url: 'https://res.cloudinary.com/dz2vizcjb/image/upload/v1773156978/FF_lssxwy.png', height: 380, offset: -70 }, 
+                lower: { char: 'f', url: 'https://res.cloudinary.com/dz2vizcjb/image/upload/v1773156977/f_isxs3v.png', height: 380, offset: -70 } 
+            },
+            { 
+                upper: { char: 'G', url: 'https://res.cloudinary.com/dz2vizcjb/image/upload/v1773156980/GG_nmefxx.png', height: 380, offset: -70 }, 
+                lower: { char: 'g', url: 'https://res.cloudinary.com/dz2vizcjb/image/upload/v1773156978/g_sfxkdb.png', height: 380, offset: -70 } // g ada ekor
+            },
+            { 
+                upper: { char: 'H', url: 'https://res.cloudinary.com/dz2vizcjb/image/upload/v1773156981/HH_ds8e7n.png', height: 380, offset: -70 }, 
+                lower: { char: 'h', url: 'https://res.cloudinary.com/dz2vizcjb/image/upload/v1773156985/h_nuim0v.png', height: 380, offset: -70 } 
+            },
+            { 
+                upper: { char: 'I', url: 'https://res.cloudinary.com/dz2vizcjb/image/upload/v1773156982/II_qstd4y.png', height: 380, offset: -70 }, 
+                lower: { char: 'i', url: 'https://res.cloudinary.com/dz2vizcjb/image/upload/v1773156982/i_f7jkp6.png', height: 280, offset: -20 } 
+            },
+            { 
+                // HURUF J TELAH DIUBAHSUAI KHAS:
+                upper: { char: 'J', url: 'https://res.cloudinary.com/dz2vizcjb/image/upload/v1773156984/JJ_o5zcb4.png', height: 380, offset: -70 }, 
+                lower: { char: 'j', url: 'https://res.cloudinary.com/dz2vizcjb/image/upload/v1773156983/j_zi12qe.png', height: 380, offset: -70 } 
+            },
+            { 
+                upper: { char: 'K', url: 'https://res.cloudinary.com/dz2vizcjb/image/upload/v1773156985/KK_ziwlom.png', height: 380, offset: -70 }, 
+                lower: { char: 'k', url: 'https://res.cloudinary.com/dz2vizcjb/image/upload/v1773156985/k_bke5o7.png', height: 380, offset: -70 } 
+            },
+            { 
+                upper: { char: 'L', url: 'https://res.cloudinary.com/dz2vizcjb/image/upload/v1773156988/LL_ttlltb.png', height: 380, offset: -70 }, 
+                lower: { char: 'l', url: 'https://res.cloudinary.com/dz2vizcjb/image/upload/v1773156987/l_qo4l51.png', height: 380, offset: -70 } 
+            },
+            { 
+                upper: { char: 'M', url: 'https://res.cloudinary.com/dz2vizcjb/image/upload/v1773156988/MM_a4nral.png', height: 380, offset: -70 }, 
+                lower: { char: 'm', url: 'https://res.cloudinary.com/dz2vizcjb/image/upload/v1773156986/m_fhanfk.png', height: 280, offset: -20 } 
+            },
+            { 
+                upper: { char: 'N', url: 'https://res.cloudinary.com/dz2vizcjb/image/upload/v1773156990/NN_sxdzeh.png', height: 380, offset: -70 }, 
+                lower: { char: 'n', url: 'https://res.cloudinary.com/dz2vizcjb/image/upload/v1773156988/n_x3q4rm.png', height: 280, offset: -20 } 
+            },
+            { 
+                upper: { char: 'O', url: 'https://res.cloudinary.com/dz2vizcjb/image/upload/v1773156991/OO_sberla.png', height: 380, offset: -70 }, 
+                lower: { char: 'o', url: 'https://res.cloudinary.com/dz2vizcjb/image/upload/v1773156991/o_fgyxmn.png', height: 280, offset: -20 } 
+            },
+            { 
+                upper: { char: 'P', url: 'https://res.cloudinary.com/dz2vizcjb/image/upload/v1773156993/PP_rxexji.png', height: 380, offset: -70 }, 
+                lower: { char: 'p', url: 'https://res.cloudinary.com/dz2vizcjb/image/upload/v1773156992/p_qiyxjc.png', height: 380, offset: -70 } 
+            },
+            { 
+                upper: { char: 'Q', url: 'https://res.cloudinary.com/dz2vizcjb/image/upload/v1773156997/QQ_vdwgdb.png', height: 380, offset: -70 }, 
+                lower: { char: 'q', url: 'https://res.cloudinary.com/dz2vizcjb/image/upload/v1773156994/q_pe2ak7.png', height: 380, offset: -70 } 
+            },
+            { 
+                upper: { char: 'R', url: 'https://res.cloudinary.com/dz2vizcjb/image/upload/v1773156996/RR_bz5jub.png', height: 380, offset: -70 }, 
+                lower: { char: 'r', url: 'https://res.cloudinary.com/dz2vizcjb/image/upload/v1773156995/r_lqoc8h.png', height: 280, offset: -20 } 
+            },
+            { 
+                upper: { char: 'S', url: 'https://res.cloudinary.com/dz2vizcjb/image/upload/v1773156997/SS_hejdqi.png', height: 380, offset: -70 }, 
+                lower: { char: 's', url: 'https://res.cloudinary.com/dz2vizcjb/image/upload/v1773156996/s_z3ycud.png', height: 280, offset: -20 } 
+            },
+            { 
+                upper: { char: 'T', url: 'https://res.cloudinary.com/dz2vizcjb/image/upload/v1773156999/TT_sqemik.png', height: 380, offset: -70 }, 
+                lower: { char: 't', url: 'https://res.cloudinary.com/dz2vizcjb/image/upload/v1773156998/t_mj4nkd.png', height: 380, offset: -70 } 
+            },
+            { 
+                upper: { char: 'U', url: 'https://res.cloudinary.com/dz2vizcjb/image/upload/v1773157001/UU_w3d5eg.png', height: 380, offset: -70 }, 
+                lower: { char: 'u', url: 'https://res.cloudinary.com/dz2vizcjb/image/upload/v1773157000/u_zfqibc.png', height: 280, offset: -20 } 
+            },
+            { 
+                upper: { char: 'V', url: 'https://res.cloudinary.com/dz2vizcjb/image/upload/v1773157002/VV_uqxssp.png', height: 380, offset: -70 }, 
+                lower: { char: 'v', url: 'https://res.cloudinary.com/dz2vizcjb/image/upload/v1773157002/v_ec0lns.png', height: 280, offset: -20 } 
+            },
+            { 
+                upper: { char: 'W', url: 'https://res.cloudinary.com/dz2vizcjb/image/upload/v1773157005/WW_upqg2i.png', height: 380, offset: -70 }, 
+                lower: { char: 'w', url: 'https://res.cloudinary.com/dz2vizcjb/image/upload/v1773157003/w_twslif.png', height: 280, offset: -20 } 
+            },
+            { 
+                upper: { char: 'X', url: 'https://res.cloudinary.com/dz2vizcjb/image/upload/v1773157006/XX_xjdsu3.png', height: 380, offset: -70 }, 
+                lower: { char: 'x', url: 'https://res.cloudinary.com/dz2vizcjb/image/upload/v1773157004/x_bvluhm.png', height: 280, offset: -20 } 
+            },
+            { 
+                upper: { char: 'Y', url: 'https://res.cloudinary.com/dz2vizcjb/image/upload/v1773157006/YY_as9b0v.png', height: 380, offset: -70 }, 
+                lower: { char: 'y', url: 'https://res.cloudinary.com/dz2vizcjb/image/upload/v1773157007/y_q1or3i.png', height: 380, offset: -70 } 
+            },
+            { 
+                upper: { char: 'Z', url: 'https://res.cloudinary.com/dz2vizcjb/image/upload/v1773156971/ZZ_irueoi.png', height: 380, offset: -70 }, 
+                lower: { char: 'z', url: 'https://res.cloudinary.com/dz2vizcjb/image/upload/v1773156971/z_zrsqvd.png', height: 280, offset: -20 } 
+            }
+        ];
+
+        let currentIndex = 0; 
+        let correctCount = 0; 
+        
+        const container = document.getElementById('garis-container');
+        const feedback = document.getElementById('feedback');
+        const pool = document.getElementById('letters-pool');
+        const progressText = document.getElementById('progress-text');
+        const resetBtn = document.getElementById('reset-btn');
+
+        let activeLetter = null;
+        let offsetX = 0;
+        let offsetY = 0;
+        let isTransitioning = false; 
+
+        function loadCurrentLetter() {
+            isTransitioning = false;
+            correctCount = 0; 
+            feedback.textContent = "";
+            pool.innerHTML = ""; 
+            
+            const oldLetters = container.querySelectorAll('.letter');
+            oldLetters.forEach(l => l.remove());
+
+            if (currentIndex >= alphabetPairs.length) {
+                gameComplete();
+                return;
+            }
+
+            const currentPair = alphabetPairs[currentIndex];
+            progressText.textContent = `Tahap: Pasangan ${currentIndex + 1} daripada 26`;
+
+            createLetterElement(currentPair.upper, 'upper');
+            createLetterElement(currentPair.lower, 'lower');
+        }
+
+        function createLetterElement(letterData, pairSide) {
+            const letterEl = document.createElement('img'); 
+            letterEl.src = letterData.url;
+            letterEl.className = 'letter';
+            letterEl.setAttribute('data-side', pairSide); 
+            letterEl.setAttribute('alt', letterData.char); 
+            letterEl.draggable = false; 
+            
+            letterEl.style.height = letterData.height + 'px';
+            letterEl.setAttribute('data-offset', letterData.offset);
+            
+            const startY = letterData.poolY !== undefined ? letterData.poolY : 0; 
+            letterEl.setAttribute('data-pooly', startY); 
+            letterEl.style.top = startY + 'px'; 
+            
+            letterEl.addEventListener('pointerdown', dragStart);
+            pool.appendChild(letterEl);
+        }
+
+        function dragStart(e) {
+            if (isTransitioning) return;
+            
+            activeLetter = e.target;
+            const rect = activeLetter.getBoundingClientRect();
+            
+            offsetX = e.clientX - rect.left;
+            offsetY = e.clientY - rect.top;
+
+            activeLetter.style.position = 'absolute';
+            activeLetter.style.zIndex = 1000;
+            document.body.appendChild(activeLetter);
+
+            moveAt(e.pageX, e.pageY);
+
+            document.addEventListener('pointermove', drag);
+            document.addEventListener('pointerup', drop);
+        }
+
+        function moveAt(pageX, pageY) {
+            activeLetter.style.left = pageX - offsetX + 'px';
+            activeLetter.style.top = pageY - offsetY + 'px';
+        }
+
+        function drag(e) {
+            if (!activeLetter) return;
+            moveAt(e.pageX, e.pageY);
+        }
+
+        function drop(e) {
+            document.removeEventListener('pointermove', drag);
+            document.removeEventListener('pointerup', drop);
+
+            if (!activeLetter) return;
+
+            const containerRect = container.getBoundingClientRect();
+            const letterRect = activeLetter.getBoundingClientRect();
+
+            const letterCenterX = letterRect.left + letterRect.width / 2;
+            const letterCenterY = letterRect.top + letterRect.height / 2;
+
+            if (
+                letterCenterX >= containerRect.left &&
+                letterCenterX <= containerRect.right &&
+                letterCenterY >= containerRect.top - 200 &&
+                letterCenterY <= containerRect.bottom + 200
+            ) {
+                checkPosition(activeLetter, containerRect, letterRect);
+            } else {
+                returnToPool(activeLetter);
+            }
+
+            activeLetter = null;
+        }
+
+        function checkPosition(letter, containerRect, letterRect) {
+            const side = letter.getAttribute('data-side');
+            const relativeY = letterRect.top - containerRect.top;
+            
+            let isCorrect = (relativeY >= -300 && relativeY <= 250);
+
+            if (isCorrect) {
+                correctCount++;
+                letter.removeEventListener('pointerdown', dragStart); 
+                letter.style.cursor = "default";
+                
+                container.appendChild(letter);
+                letter.style.position = 'absolute';
+
+                const targetOffset = parseInt(letter.getAttribute('data-offset'));
+                letter.style.top = targetOffset + 'px';
+                
+                if (side === 'upper') {
+                    letter.style.left = 'calc(50% - 90px)'; 
+                } else {
+                    letter.style.left = 'calc(50% + 50px)'; 
+                }
+                letter.style.transform = 'translateX(-50%)';
+
+                if (correctCount === 2) {
+                    isTransitioning = true;
+                    feedback.textContent = `Hebat! Kedudukan yang betul. Bersedia...`;
+                    feedback.className = "correct";
+                    
+                    setTimeout(() => {
+                        currentIndex++;
+                        loadCurrentLetter();
+                    }, 1500);
+                } else {
+                    feedback.textContent = `Bagus! Sekarang letakkan huruf satu lagi.`;
+                    feedback.className = "correct";
+                }
+
+            } else {
+                feedback.textContent = `Salah garisan. Pastikan diletak di aras yang betul!`;
+                feedback.className = "wrong";
+                returnToPool(letter);
+            }
+        }
+
+        function returnToPool(letter) {
+            pool.appendChild(letter);
+            letter.style.position = 'relative';
+            letter.style.left = '0';
+            
+            const startY = letter.getAttribute('data-pooly') || 0;
+            letter.style.top = startY + 'px'; 
+
+            letter.style.transform = 'none'; 
+            letter.style.zIndex = 10;
+        }
+
+        function gameComplete() {
+            progressText.textContent = "Tahniah! Anda Berjaya!";
+            feedback.textContent = "Menyusun dari Aa hingga Zz dengan sempurna!";
+            feedback.className = "correct";
+            pool.innerHTML = "🎉🎉🎉";
+            pool.style.fontSize = "100px"; 
+            resetBtn.style.display = "inline-block"; 
+        }
+
+        function restartGame() {
+            currentIndex = 0;
+            resetBtn.style.display = "none";
+            pool.style.fontSize = ""; 
+            loadCurrentLetter();
+        }
+
+        window.onload = loadCurrentLetter;
+    </script>
+</body>
+</html>

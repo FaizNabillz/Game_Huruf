@@ -88,10 +88,10 @@
         .line-3 { top: 160px; background-color: #4da6ff; } 
         .line-4 { top: 240px; background-color: #ff4d4d; } 
 
-        /* Tempat simpan huruf (Susunan Menegak) */
+        /* Tempat simpan huruf */
         #letters-pool {
             display: flex;
-            flex-direction: column; /* Disusun atas bawah */
+            flex-direction: row; 
             justify-content: center;
             align-items: center;
             width: 100%;
@@ -102,9 +102,9 @@
             overflow: visible; 
         }
 
-        /* Huruf di dalam kotak dirapatkan secara menegak */
+        
         #letters-pool .letter {
-            margin: -60px 0; 
+            margin: 0 -120px; 
         }
 
         /* Gaya Khusus Gambar Huruf */
@@ -230,7 +230,6 @@
                 lower: { char: 'i', url: 'https://res.cloudinary.com/dz2vizcjb/image/upload/v1773156982/i_f7jkp6.png', height: 280, offset: -20 } 
             },
             { 
-                // HURUF J TELAH DIUBAHSUAI KHAS:
                 upper: { char: 'J', url: 'https://res.cloudinary.com/dz2vizcjb/image/upload/v1773156984/JJ_o5zcb4.png', height: 380, offset: -70 }, 
                 lower: { char: 'j', url: 'https://res.cloudinary.com/dz2vizcjb/image/upload/v1773156983/j_zi12qe.png', height: 380, offset: -70 } 
             },

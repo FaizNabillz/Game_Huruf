@@ -30,22 +30,46 @@
             border: 3px solid #b3d9ff;
         }
 
+        /* PERUBAHAN LAYOUT UTAMA: Kiri dan Kanan */
         #game-board {
             width: 95%; 
-            max-width: 700px; 
+            max-width: 1100px; /* Dibesarkan sikit untuk muat kiri & kanan */
             margin: 0 auto;
             background: white;
-            padding: 40px 20px;
+            padding: 40px;
             border-radius: 20px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            display: flex;
+            flex-direction: row; /* Susun Kiri Kanan */
+            justify-content: space-between;
+            align-items: center;
+            gap: 30px;
         }
 
-        /* Garisan 1:1:1 Gergasi (Jarak 80px setiap satu) */
+        /* Bahagian Kiri (Garisan & Mesej) */
+        #left-side {
+            flex: 2; /* Ambil lebih banyak ruang */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        /* Bahagian Kanan (Kotak Kuning Drag) */
+        #right-side {
+            flex: 1; /* Ambil ruang selebihnya */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+
+        /* Garisan 1:1:1 Gergasi */
         .garis-container {
             position: relative;
             width: 100%;
             height: 244px;
-            margin: 60px 0;
+            margin: 20px 0;
             background: #fff;
             border-left: 3px solid #ddd;
             border-right: 3px solid #ddd;
@@ -59,29 +83,28 @@
             border-radius: 2px;
         }
 
-        /* Koordinat Garisan */
         .line-1 { top: 0px; background-color: #ff4d4d; }   
         .line-2 { top: 80px; background-color: #4da6ff; }  
         .line-3 { top: 160px; background-color: #4da6ff; } 
         .line-4 { top: 240px; background-color: #ff4d4d; } 
 
-        /* Tempat simpan huruf (Kotak Kuning) */
+        /* Tempat simpan huruf (Susunan Menegak) */
         #letters-pool {
             display: flex;
+            flex-direction: column; /* Disusun atas bawah */
             justify-content: center;
             align-items: center;
-            gap: 0px; 
-            margin-top: 80px;
-            height: 250px; 
+            width: 100%;
+            height: 380px; 
             background: #fff8e6;
             border-radius: 15px;
             border: 4px dashed #ffcc00;
             overflow: visible; 
         }
 
-        /* PENYELESAIAN JARAK: Menarik imej mendekati satu sama lain secara visual di dalam kotak */
+        /* Huruf di dalam kotak dirapatkan secara menegak */
         #letters-pool .letter {
-            margin: 0 -130px; /* <--- NILAI NEGATIF DIBESARKAN SUPAYA LEBIH RAPAT */
+            margin: -60px 0; 
         }
 
         /* Gaya Khusus Gambar Huruf */
@@ -94,21 +117,21 @@
             -webkit-user-drag: none; 
             flex-shrink: 0; 
         }
-
         .letter:active { cursor: grabbing; }
 
         /* Mesej maklum balas */
         #feedback {
-            margin-top: 30px;
-            font-size: 30px; 
+            margin-top: 20px;
+            font-size: 26px; 
             font-weight: bold;
             min-height: 40px;
+            text-align: center;
         }
         .correct { color: #4CAF50; }
         .wrong { color: #F44336; }
 
         #reset-btn {
-            margin-top: 30px;
+            margin-top: 20px;
             padding: 15px 35px;
             font-size: 22px;
             background: #ff9900;
@@ -121,6 +144,25 @@
             display: none; 
         }
         #reset-btn:hover { background: #e68a00; }
+
+        /* Responsif untuk skrin kecil (Telefon/Tablet kecil) */
+        @media (max-width: 800px) {
+            #game-board {
+                flex-direction: column; /* Tukar balik ke atas-bawah kalau skrin sempit */
+                padding: 20px;
+            }
+            #left-side, #right-side {
+                width: 100%;
+            }
+            #letters-pool {
+                flex-direction: row; /* Susun kiri kanan semula */
+                height: 250px;
+                margin-top: 40px;
+            }
+            #letters-pool .letter {
+                margin: 0 -80px; /* Rapatkan secara mendatar */
+            }
+        }
     </style>
 </head>
 <body>
@@ -131,16 +173,22 @@
     <div id="progress-text">Memuatkan...</div>
 
     <div id="game-board">
-        <div class="garis-container" id="garis-container">
-            <div class="line line-1"></div>
-            <div class="line line-2"></div>
-            <div class="line line-3"></div>
-            <div class="line line-4"></div>
+        
+        <div id="left-side">
+            <div class="garis-container" id="garis-container">
+                <div class="line line-1"></div>
+                <div class="line line-2"></div>
+                <div class="line line-3"></div>
+                <div class="line line-4"></div>
+            </div>
+            <div id="feedback"></div>
+            <button id="reset-btn" onclick="restartGame()">Main Semula Dari Aa</button>
         </div>
 
-        <div id="feedback"></div>
-        <div id="letters-pool"></div>
-        <button id="reset-btn" onclick="restartGame()">Main Semula Dari Aa</button>
+        <div id="right-side">
+            <div id="letters-pool"></div>
+        </div>
+
     </div>
 
     <script>
